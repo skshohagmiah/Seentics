@@ -14,7 +14,7 @@ export default function Hero() {
   // Video is muted by default, no need to set volume
 
   return (
-    <section className="flex items-center justify-center relative overflow-hidden py-8 md:py-32">
+    <section className="flex items-center justify-center relative overflow-hidden py-12 sm:py-16 md:py-32">
       <div className="absolute inset-0 bg-white dark:bg-slate-950" />
 
       {/* Minimal floating elements */}
@@ -29,40 +29,39 @@ export default function Hero() {
 
 
           {/* Clean, powerful headline */}
-          <h1 className="text-4xl sm:text-6xl  font-black leading-[0.9] mb-8 text-slate-900 dark:text-white">
-            <span className="block mb-6">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black leading-tight mb-6 sm:mb-8 text-slate-900 dark:text-white">
+            <span className="block mb-3 sm:mb-4 md:mb-6">
               Track <span className="text-blue-500">visitors</span>,
             </span>
 
-            <span className="block mb-6">
+            <span className="block mb-3 sm:mb-4 md:mb-6">
               Automate <span className="text-purple-500">everything</span>
             </span>
 
-            <span className="block text-3xl sm:text-4xl  font-bold text-green-600 dark:text-green-400">
+            <span className="block text-2xl sm:text-3xl md:text-4xl font-bold text-green-600 dark:text-green-400">
               popups, webhook & beyond
             </span>
           </h1>
 
           {/* Simple value proposition */}
-          <p className="text-xl sm:text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto mb-8 leading-relaxed">
-            Get website analytics, automated workflows, and conversion funnels in one simple platform.
-            <span className="font-semibold text-slate-900 dark:text-white"> Self-hosted and privacy-first.</span>
+          <p className="text-base sm:text-lg md:text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto mb-6 sm:mb-8 leading-relaxed px-4 sm:px-0">
+            Get website analytics that show what visitors do and where they come from. Create automated workflows that turn visitors into customers. Build conversion funnels that <span className="font-semibold text-slate-900 dark:text-white">boost sales automatically.</span>
           </p>
 
           {/* Clean CTA buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-6 sm:mb-8 px-4 sm:px-0">
             {isAuthenticated && user ? (
               <>
                 <Link href="/websites">
-                  <Button size="lg" className="px-10 py-6 text-lg font-semibold rounded-md">
+                  <Button size="lg" className="px-6 sm:px-8 md:px-10 py-4 sm:py-5 md:py-6 text-base sm:text-lg font-semibold rounded-md w-full sm:w-auto">
                     Go to Dashboard
-                    <ArrowRight className="ml-2 h-5 w-5" />
+                    <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                 </Link>
 
                 <a href="https://github.com/seentics/seentics" target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" size="lg" className="px-10 py-6 text-lg font-semibold border-2 border-slate-300 dark:border-slate-600 rounded-md transition-all duration-300">
-                    <FaGithub size={30} />
+                  <Button variant="outline" size="lg" className="px-6 sm:px-8 md:px-10 py-4 sm:py-5 md:py-6 text-base sm:text-lg font-semibold border-2 border-slate-300 dark:border-slate-600 rounded-md transition-all duration-300 w-full sm:w-auto">
+                    <FaGithub size={20} className="sm:w-6 sm:h-6 md:w-7 md:h-7" />
                     View Source
                   </Button>
                 </a>
@@ -70,15 +69,15 @@ export default function Hero() {
             ) : (
               <>
                 <Link href="/signup">
-                  <Button size="lg" className="px-10 py-6 text-lg font-semibold rounded-md">
+                  <Button size="lg" className="px-6 sm:px-8 md:px-10 py-4 sm:py-5 md:py-6 text-base sm:text-lg font-semibold rounded-md w-full sm:w-auto">
                     Start Free Today
-                    <ArrowRight className="ml-2 h-5 w-5" />
+                    <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                 </Link>
 
                 <a href="https://github.com/skshohagmiah/Seentics" target="_blank" rel="noopener noreferrer">
-                  <Button variant="secondary" size="lg" className="font-semibold text-lg rounded-md">
-                    <FaGithub size={30} />
+                  <Button variant="secondary" size="lg" className="font-semibold text-base sm:text-lg rounded-md px-6 sm:px-8 md:px-10 py-4 sm:py-5 md:py-6 w-full sm:w-auto">
+                    <FaGithub size={20} className="sm:w-6 sm:h-6 md:w-7 md:h-7" />
                     GitHub
                   </Button>
                 </a>
@@ -87,13 +86,13 @@ export default function Hero() {
           </div>
 
           {/* Simple bottom text */}
-          <p className="text-sm text-slate-600 dark:text-slate-400 mb-8">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mb-6 sm:mb-8 px-4 sm:px-0 text-center">
             Replaces Google Analytics, HubSpot, Mixpanel and more.
             <span className="font-medium"> No tracking. No limits. Own your data.</span>
           </p>
 
           {/* Video Section */}
-          <div className="relative w-full max-w-7xl mx-auto mt-12">
+          <div className="relative w-full max-w-7xl mx-auto mt-8 sm:mt-12 md:mt-16 px-4 sm:px-0">
             <div className="relative rounded-xl overflow-hidden shadow-2xl bg-slate-900 dark:bg-slate-800">
               <div className="relative aspect-video">
                 <video

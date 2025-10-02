@@ -116,10 +116,8 @@ func extractFromBody(r *http.Request) (*RequestData, error) {
 		data.SiteID = websiteID
 	}
 
-	// Extract domain from body
-	if domain, ok := bodyData["domain"].(string); ok {
-		data.Domain = domain
-	}
+	// Domain should NEVER be trusted from client payload for security
+	// Domain will be extracted from Origin/Referer headers only
 
 	return data, nil
 }

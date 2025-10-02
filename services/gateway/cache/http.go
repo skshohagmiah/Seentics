@@ -142,3 +142,61 @@ func makeValidationRequest(url string, payload ValidationRequest) (*ValidationRe
 
 	return &result, nil
 }
+
+// Helper function to make POST requests with custom headers
+func makeValidationRequestWithHeaders(url string, payload map[string]interface{}, headers map[string]string) (*ValidationResponse, error) {
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal validation payload: %v", err)
+	}
+
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	// Add API key for inter-service communication
+	globalAPIKey := os.Getenv("GLOBAL_API_KEY")
+	if globalAPIKey != "" {
+		req.Header.Set("X-API-Key", globalAPIKey)
+	}
+
+	// Add custom headers
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call validation service: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read validation response: %v", err)
+	}
+
+	var result ValidationResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to decode validation response: %v", err)
+	}
+
+	// Check if the response indicates failure (even for 200 status codes)
+	if !result.Success {
+		return nil, fmt.Errorf("validation failed: %s", result.Message)
+	}
+
+	// Also check for non-200 status codes
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("validation service returned %d: %s", resp.StatusCode, string(body))
+	}
+
+	return &result, nil
+}

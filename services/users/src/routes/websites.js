@@ -1,5 +1,6 @@
 import express from 'express';
 import { getAllWebsites, getWebsite, createWebsite, updateWebsite, deleteWebsite, updateWebsiteSettings, validateWebsite } from '../controllers/websites/websiteManagementController.js';
+import { validateWebsiteWithOrigin } from '../controllers/websites/websitesController.js';
 import { authenticate, checkUsageLimit } from '../middleware/auth.js';
 import { websiteValidation } from '../middleware/validation.js';
 
@@ -17,5 +18,8 @@ router.put('/:id/settings', authenticate, updateWebsiteSettings);
 
 // Website validation (public endpoint)
 router.post('/validate', validateWebsite);
+
+// Website validation with origin checking (for tracking endpoints)
+router.post('/validate-origin', validateWebsiteWithOrigin);
 
 export default router;

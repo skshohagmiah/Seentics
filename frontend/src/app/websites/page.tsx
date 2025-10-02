@@ -1,20 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { addWebsite, getWebsites, deleteWebsite, Website } from '@/lib/websites-api';
-import { getTrafficSummary, type TrafficSummary } from '@/lib/analytics-api';
-import { useAuth } from '@/stores/useAuthStore';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/hooks/useSubscription';
+import { getTrafficSummary, type TrafficSummary } from '@/lib/analytics-api';
+import { addWebsite, deleteWebsite, getWebsites, Website } from '@/lib/websites-api';
+import { useAuth } from '@/stores/useAuthStore';
+import { Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 // Import our new modular components
-import { WebsitesHeader } from '@/components/websites/websites-header';
-import { WebsiteModal } from '@/components/websites/website-modal';
+import { EmptyState } from '@/components/websites/empty-state';
 import { TrackingCodeModal } from '@/components/websites/tracking-code-modal';
 import { WebsiteCard } from '@/components/websites/website-card';
-import { EmptyState } from '@/components/websites/empty-state';
+import { WebsiteModal } from '@/components/websites/website-modal';
+import { WebsitesHeader } from '@/components/websites/websites-header';
 
 export default function WebsitesPage() {
   const { user } = useAuth();
@@ -22,19 +21,19 @@ export default function WebsitesPage() {
   const [isLoadingWebsites, setIsLoadingWebsites] = useState(true);
   const { subscription, canCreateWebsite } = useSubscription();
   const [siteStats, setSiteStats] = useState<Record<string, { pageviews: number; unique: number }>>({});
-  
+
   // Modal states
   const [isWebsiteModalOpen, setWebsiteModalOpen] = useState(false);
   const [isTrackingModalOpen, setTrackingModalOpen] = useState(false);
   const [selectedSiteIdForModal, setSelectedSiteIdForModal] = useState<string | null>(null);
   const [newlyCreatedSiteId, setNewlyCreatedSiteId] = useState<string | null>(null);
-  
+
   const { toast: showToast } = useToast();
 
   // Fetch websites
   const fetchWebsites = async () => {
     if (!user) return;
-    
+
     setIsLoadingWebsites(true);
     try {
       const websitesData = await getWebsites();
@@ -87,7 +86,7 @@ export default function WebsitesPage() {
           for (const [id, value] of results) map[id] = value;
           setSiteStats(map);
         }
-      } catch (_) {}
+      } catch (_) { }
     };
     loadStats();
     return () => {
@@ -112,29 +111,29 @@ export default function WebsitesPage() {
     try {
       const newWebsite = await addWebsite(website, user!.id);
       console.log('New website created:', newWebsite);
-      
+
       await fetchWebsites(); // Refresh websites list
-      
+
       // Show tracking modal for the newly created website
       if (newWebsite && newWebsite.id) {
         console.log('Setting up tracking modal for website:', newWebsite.id);
         setNewlyCreatedSiteId(newWebsite.id);
         setSelectedSiteIdForModal(newWebsite.id);
-        
+
         // Use setTimeout to ensure state updates are processed
         setTimeout(() => {
           setTrackingModalOpen(true);
           console.log('Tracking modal should now be open');
         }, 100);
       }
-      
+
       return newWebsite;
     } catch (error: any) {
       console.error('Error creating website:', error);
-      showToast({ 
-        title: 'Error', 
-        description: error.message || 'Failed to create the website.', 
-        variant: 'destructive' 
+      showToast({
+        title: 'Error',
+        description: error.message || 'Failed to create the website.',
+        variant: 'destructive'
       });
       return false;
     }
@@ -143,16 +142,16 @@ export default function WebsitesPage() {
   const handleDeleteWebsite = async (siteId: string, siteName: string) => {
     try {
       await deleteWebsite(siteId, user!.id);
-      showToast({ 
-        title: 'Website Deleted', 
-        description: `"${siteName}" and all its workflows have been deleted.` 
+      showToast({
+        title: 'Website Deleted',
+        description: `"${siteName}" and all its workflows have been deleted.`
       });
       await fetchWebsites(); // Refresh websites list
     } catch (error: any) {
-      showToast({ 
-        title: 'Error Deleting Website', 
-        description: error.message || 'An unexpected error occurred.', 
-        variant: 'destructive' 
+      showToast({
+        title: 'Error Deleting Website',
+        description: error.message || 'An unexpected error occurred.',
+        variant: 'destructive'
       });
     }
   };
@@ -185,13 +184,13 @@ export default function WebsitesPage() {
   return (
     <div className="min-h-screen bg-background ">
       <WebsitesHeader onCreateWebsite={() => setWebsiteModalOpen(true)} />
-      
+
       <main className="p-4 sm:p-6  max-w-7xl mx-auto">
         <div className="max-w-7xl mx-auto">
           {/* Open Source Version - No Usage Limits */}
-          
+
           <div className="mb-8">
-            <h1 className="font-headline text-3xl font-bold tracking-tight">Your Websites</h1>
+            <h1 className="font-headline text-2xl font-bold tracking-tight">Your Websites</h1>
             <p className="text-muted-foreground mt-2">
               Select a site to manage its workflows and analytics, or add a new one to get started.
             </p>

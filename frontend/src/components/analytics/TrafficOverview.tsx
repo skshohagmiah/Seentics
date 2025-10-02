@@ -61,7 +61,9 @@ export function TrafficOverview({ dailyStats, hourlyStats, isLoading = false, cl
           )}
           {trafficTab === 'table' && (
             <div className="space-y-2">
-              {dailyStats?.daily_stats?.slice(0, 7).map((day: DailyStat, index: number) => (
+              {dailyStats?.daily_stats?.sort((a: DailyStat, b: DailyStat) => 
+                new Date(b.date).getTime() - new Date(a.date).getTime()
+              ).slice(0, 7).map((day: DailyStat, index: number) => (
                 <div key={index} className="flex justify-between items-center p-2 bg-muted/30 ">
                   <span className="text-sm text-foreground">{new Date(day.date).toLocaleDateString()}</span>
                   <div className="flex gap-4 text-sm">
@@ -76,7 +78,7 @@ export function TrafficOverview({ dailyStats, hourlyStats, isLoading = false, cl
             <div className="space-y-4">
               <div className="h-[32rem]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={hourlyStats?.hourly_stats?.slice(0, 24) || []} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                  <AreaChart data={hourlyStats?.hourly_stats?.sort((a: HourlyStat, b: HourlyStat) => a.hour - b.hour).slice(0, 24) || []} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis
                       dataKey="hour_label"

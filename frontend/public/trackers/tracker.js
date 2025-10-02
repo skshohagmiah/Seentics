@@ -91,7 +91,7 @@
         const events = queue.splice(0);
         flushTimer = null;
         try {
-          const data = JSON.stringify({ siteId, domain: l.hostname, events });
+          const data = JSON.stringify({ siteId, events });
           if (n.sendBeacon) {
             n.sendBeacon(API, new Blob([data], { type: 'application/json' }));
           } else {

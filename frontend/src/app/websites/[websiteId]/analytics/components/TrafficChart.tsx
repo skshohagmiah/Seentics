@@ -44,7 +44,6 @@ export const TrafficChart: React.FC<TrafficChartProps> = ({
   title = 'Traffic Overview',
   subtitle = 'Page views and unique visitors over time'
 }) => {
-  console.log("Traffic overview:", data)
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -57,7 +56,10 @@ export const TrafficChart: React.FC<TrafficChartProps> = ({
     );
   }
 
-  const chartData = data?.daily_stats || [];
+  // Sort data chronologically (oldest to newest) for proper chart display
+  const chartData = (data?.daily_stats || []).sort((a: any, b: any) => 
+    new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
 
   if (chartData.length === 0) {
     return (

@@ -4,11 +4,15 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
+// WebsiteValidator interface to support different validation functions
+type WebsiteValidator interface{}
+
 // Handle public website requests (analytics/tracking)
-func ValidatePublicRequest(w http.ResponseWriter, r *http.Request, validateWebsiteFunc func(string, string) (map[string]interface{}, error), websiteContextKey interface{}) error {
+func ValidatePublicRequest(w http.ResponseWriter, r *http.Request, validateWebsiteFunc WebsiteValidator, websiteContextKey interface{}) error {
 	// Extract domain and siteId from multiple sources
 	requestData, err := ExtractRequestData(r)
 	if err != nil {
@@ -19,22 +23,35 @@ func ValidatePublicRequest(w http.ResponseWriter, r *http.Request, validateWebsi
 		return fmt.Errorf("domain or siteId required")
 	}
 
-	// For tracker requests, we need both websiteId and domain for proper validation
-	var websiteID string
+	// Extract websiteID from request data
+	websiteID := requestData.SiteID
+	
+	// SECURITY: Domain must ONLY come from Origin/Referer headers, never from payload
+	origin := r.Header.Get("Origin")
+	if origin == "" {
+		origin = r.Header.Get("Referer")
+	}
+	
 	var domain string
-
-	if requestData.SiteID != "" {
-		websiteID = requestData.SiteID
-		// For tracker requests, use a default domain if none provided
-		if requestData.Domain == "" {
-			domain = "localhost" // Default domain for local development
+	if origin != "" {
+		// Extract domain from Origin/Referer header
+		if parsedURL, err := url.Parse(origin); err == nil {
+			domain = parsedURL.Hostname()
 		} else {
-			domain = requestData.Domain
+			// Fallback parsing for malformed origins
+			domain = strings.TrimPrefix(origin, "https://")
+			domain = strings.TrimPrefix(domain, "http://")
+			domain = strings.Split(domain, "/")[0]
+			domain = strings.Split(domain, ":")[0]
 		}
-	} else if requestData.Domain != "" {
-		domain = requestData.Domain
-		// We would need to resolve domain to websiteId, but for now skip validation
-		websiteID = "unknown"
+	}
+	
+	// Require both siteID and origin for tracking requests
+	if websiteID == "" {
+		return fmt.Errorf("siteId required")
+	}
+	if domain == "" && isTrackingRequest(r.URL.Path) {
+		return fmt.Errorf("origin header required for tracking requests")
 	}
 
 	// For public fetch of active workflows, allow bypass in local/dev to avoid strict ObjectId coupling
@@ -53,10 +70,35 @@ func ValidatePublicRequest(w http.ResponseWriter, r *http.Request, validateWebsi
 		return nil
 	}
 
-	// Validate using the actual website validation endpoint
-	websiteData, err := validateWebsiteFunc(websiteID, domain)
-	if err != nil {
-		return fmt.Errorf("website validation failed: %v", err)
+	// For tracking endpoints, use origin validation from the already extracted origin
+	
+	// Check if this is a tracking endpoint that needs origin validation
+	isTrackingEndpoint := isTrackingRequest(r.URL.Path)
+	
+	var websiteData map[string]interface{}
+	var validationErr error
+	
+	if isTrackingEndpoint && origin != "" {
+		// Try origin validation first for tracking endpoints
+		if validateOriginFunc, ok := validateWebsiteFunc.(func(string, string, string) (map[string]interface{}, error)); ok {
+			websiteData, validationErr = validateOriginFunc(websiteID, domain, origin)
+		} else if validateRegularFunc, ok := validateWebsiteFunc.(func(string, string) (map[string]interface{}, error)); ok {
+			// Fallback to regular validation if origin validation not available
+			websiteData, validationErr = validateRegularFunc(websiteID, domain)
+		} else {
+			return fmt.Errorf("invalid validation function type")
+		}
+	} else {
+		// Use regular validation for non-tracking endpoints
+		if validateRegularFunc, ok := validateWebsiteFunc.(func(string, string) (map[string]interface{}, error)); ok {
+			websiteData, validationErr = validateRegularFunc(websiteID, domain)
+		} else {
+			return fmt.Errorf("invalid validation function type")
+		}
+	}
+	
+	if validationErr != nil {
+		return fmt.Errorf("website validation failed: %v", validationErr)
 	}
 
 	// Inject headers for downstream services
@@ -72,6 +114,26 @@ func ValidatePublicRequest(w http.ResponseWriter, r *http.Request, validateWebsi
 	*r = *r.WithContext(ctx)
 
 	return nil
+}
+
+// isTrackingRequest checks if the request path is for tracking/analytics endpoints
+func isTrackingRequest(path string) bool {
+	trackingPaths := []string{
+		"/api/v1/analytics/event",
+		"/api/v1/analytics/event/batch",
+		"/api/v1/analytics/track",
+		"/api/v1/workflows/analytics/track",
+		"/api/v1/workflows/analytics/track/batch",
+		"/api/v1/funnels/track",
+	}
+	
+	for _, trackingPath := range trackingPaths {
+		if strings.HasPrefix(path, trackingPath) {
+			return true
+		}
+	}
+	
+	return false
 }
 
 // Handle protected dashboard requests

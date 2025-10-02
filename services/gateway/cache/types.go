@@ -22,9 +22,10 @@ type ValidationResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
 	Data    struct {
-		WebsiteID   string `json:"websiteId"`
-		Domain      string `json:"domain"`
-		WebsiteName string `json:"websiteName"`
-		IsVerified  bool   `json:"isVerified"`
+		WebsiteID      string   `json:"websiteId"`
+		Domain         string   `json:"domain"`
+		WebsiteName    string   `json:"websiteName"`
+		IsVerified     bool     `json:"isVerified"`
+		AllowedOrigins []string `json:"allowedOrigins,omitempty"`
 	} `json:"data"`
 }

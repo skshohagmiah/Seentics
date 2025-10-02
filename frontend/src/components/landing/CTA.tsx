@@ -27,10 +27,10 @@ export default function CTA() {
           </div>
           
           <CardHeader className="pb-6 md:pb-8 pt-8 md:pt-12">
-            <CardTitle className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-slate-900 dark:text-white mb-4 md:mb-6">
+            <CardTitle className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white mb-3 sm:mb-4 md:mb-6 px-4 sm:px-0">
               Ready to Transform Your Business?
             </CardTitle>
-            <CardDescription className="text-lg md:text-xl lg:text-2xl text-slate-600 dark:text-slate-300 px-4 max-w-4xl mx-auto leading-relaxed">
+            <CardDescription className="text-base sm:text-lg md:text-xl text-slate-600 dark:text-slate-300 px-4 max-w-4xl mx-auto leading-relaxed">
               Join thousands of businesses using Seentics to automatically convert visitors into customers. 
               <span className="text-slate-600 dark:text-slate-400 font-semibold"> Start seeing results in 30 days.</span>
             </CardDescription>
@@ -69,23 +69,23 @@ export default function CTA() {
             </div>
             
             {/* Clean CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-6">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 md:gap-6 px-4 sm:px-0">
               <Link href="/signup" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto px-6 sm:px-8 py-4 sm:py-5 text-base sm:text-lg">
                   Start Free Trial
-                  <ArrowRight className="h-5 w-5" />
+                  <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </Link>
               <Link href="/demo" className="w-full sm:w-auto">
-                <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                <Button variant="outline" size="lg" className="w-full sm:w-auto px-6 sm:px-8 py-4 sm:py-5 text-base sm:text-lg">
                   Watch Demo
-                  <ArrowRight className="h-5 w-5" />
+                  <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </Link>
             </div>
             
             {/* Clean Trust Signals */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 md:gap-8 text-sm md:text-base text-slate-500 dark:text-slate-400">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 md:gap-8 text-xs sm:text-sm md:text-base text-slate-500 dark:text-slate-400 px-4 sm:px-0">
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-green-500" />
                 <span className="font-medium">No credit card required</span>
@@ -102,17 +102,17 @@ export default function CTA() {
             
             {/* Final CTA */}
             <div className="bg-slate-50 dark:bg-slate-700 rounded-2xl p-6 md:p-8 border border-slate-200 dark:border-slate-600">
-              <h3 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white mb-3 md:mb-4">
+              <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 dark:text-white mb-2 sm:mb-3 md:mb-4 px-4 sm:px-0">
                 Still Have Questions?
               </h3>
-              <p className="text-base md:text-lg text-slate-600 dark:text-slate-300 mb-4 md:mb-6">
+              <p className="text-sm sm:text-base md:text-lg text-slate-600 dark:text-slate-300 mb-4 md:mb-6 px-4 sm:px-0">
                 Our team is here to help you get started and see results fast.
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4">
-                <Button>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4 px-4 sm:px-0">
+                <Button className="w-full sm:w-auto text-sm sm:text-base">
                   Schedule a Call
                 </Button>
-                <Button variant="outline">
+                <Button variant="outline" className="w-full sm:w-auto text-sm sm:text-base">
                   View Documentation
                 </Button>
               </div>

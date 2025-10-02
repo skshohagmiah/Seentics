@@ -53,71 +53,88 @@ export default function ProblemStatement() {
       technical: ["A/B testing", "Conversion tracking", "Smart recommendations", "Easy integrations"]
     }
   ];
-
   return (
-    <section className="py-20 bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
-      <div className="container mx-auto px-4">
+    <section className="py-20 bg-white dark:bg-slate-950 relative overflow-hidden">
+      {/* Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-10 right-10 w-32 h-32 bg-blue-200/20 dark:bg-blue-800/10 rounded-full blur-2xl"></div>
+        <div className="absolute bottom-10 left-10 w-40 h-40 bg-purple-200/20 dark:bg-purple-800/10 rounded-full blur-2xl"></div>
+        <div className="absolute top-1/3 right-1/3 w-64 h-64 bg-green-100/10 dark:bg-green-900/5 rounded-full blur-3xl"></div>
+      </div>
+
+      <div className="px-4 relative z-10">
         <div className="max-w-7xl mx-auto">
 
-          {/* Header */}
-          <div className="text-center mb-12">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-slate-900 dark:text-white">
+          {/* Enhanced Header */}
+          <div className="text-center mb-16 sm:mb-20">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 rounded-full text-blue-700 dark:text-blue-300 text-sm font-medium mb-6">
+              <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+              Complete Solution
+            </div>
+
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6 text-slate-900 dark:text-white px-4 sm:px-0">
               Everything You Need
-              <span className="block text-blue-500 mt-2">
+              <span className="block text-blue-600 dark:text-blue-400 mt-1 sm:mt-2">
                 In One Simple Platform
               </span>
             </h2>
-            <p className="text-xl text-slate-600 dark:text-slate-400 max-w-4xl mx-auto">
+            <p className="text-base sm:text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-4xl mx-auto px-4 sm:px-0">
               Understand your visitors, automate your marketing, and grow your business - all without the technical headaches
             </p>
           </div>
 
-          {/* Three Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+          {/* Enhanced Feature Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 mb-20">
             {features.map((feature, index) => (
-              <Card key={index} className="bg-white dark:bg-slate-800 shadow-lg hover:shadow-xl transition-all duration-300 border-0 h-full">
-                <CardContent className="p-6 flex flex-col h-full">
+              <Card key={index} className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-lg hover:shadow-2xl transition-all duration-500 border border-slate-200/50 dark:border-slate-700/50 h-full hover:-translate-y-2 relative overflow-hidden group">
+                {/* Card Overlay */}
+                <div className="absolute inset-0 bg-blue-50/30 dark:bg-blue-900/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-                  {/* Icon */}
-                  <div className=" flex items-center justify-center w-16 h-16 bg-blue-100 dark:bg-blue-500 rounded-xl mb-6">
-                    <feature.icon className="h-8 w-8 text-slate-900 dark:text-white" />
+                <CardContent className="p-6 sm:p-8 flex flex-col h-full relative z-10">
+
+                  {/* Enhanced Icon */}
+                  <div className="flex items-center justify-center w-20 h-20 bg-blue-600 rounded-2xl mb-6 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
+                    <feature.icon className="h-10 w-10 text-white" />
                   </div>
 
                   {/* Title */}
-                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
                     {feature.title}
                   </h3>
 
                   {/* Subtitle */}
-                  <p className="text-slate-600 dark:text-slate-400 font-semibold mb-4">
+                  <p className="text-base sm:text-lg text-blue-600 dark:text-blue-400 font-semibold mb-4">
                     {feature.subtitle}
                   </p>
 
                   {/* Description */}
-                  <p className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+                  <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
                     {feature.description}
                   </p>
 
-                  {/* Benefits */}
-                  <ul className="space-y-2 mb-6">
+                  {/* Enhanced Benefits */}
+                  <ul className="space-y-3 mb-6 flex-grow">
                     {feature.benefits.map((benefit, benefitIndex) => (
-                      <li key={benefitIndex} className="flex items-start gap-3">
-                        <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 mt-1 flex-shrink-0" />
-                        <span className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                      <li key={benefitIndex} className="flex items-start gap-3 group/item">
+                        <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 group-hover/item:scale-110 transition-transform duration-200">
+                          <CheckCircle className="h-3 w-3 text-white" />
+                        </div>
+                        <span className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed group-hover/item:text-slate-900 dark:group-hover/item:text-slate-200 transition-colors duration-200">
                           {benefit}
                         </span>
                       </li>
                     ))}
                   </ul>
 
-                  {/* Technical Stack */}
-                  <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">
+                  {/* Enhanced Technical Stack */}
+                  <div className="pt-4 border-t border-slate-200/50 dark:border-slate-700/50 mt-auto">
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wide flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
                       What You Get
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {feature.technical.map((tech, techIndex) => (
-                        <span key={techIndex} className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs rounded-md font-medium">
+                        <span key={techIndex} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs rounded-full font-medium hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-700 dark:hover:text-blue-300 transition-colors duration-200">
                           {tech}
                         </span>
                       ))}

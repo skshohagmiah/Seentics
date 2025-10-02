@@ -1,6 +1,6 @@
 import React from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 const faqs = [
   {
@@ -67,38 +67,67 @@ const faqs = [
 
 export default function FAQ() {
   return (
-    <section className="py-16 md:py-24 bg-white dark:bg-slate-950">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-16 md:mb-20">
-          <Badge className="mb-6 px-4 py-2 bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+    <section className="py-20 bg-slate-50 dark:bg-slate-900 relative overflow-hidden">
+      {/* Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-10 left-10 w-32 h-32 bg-blue-200/20 dark:bg-blue-800/10 rounded-full blur-2xl"></div>
+        <div className="absolute bottom-10 right-10 w-40 h-40 bg-purple-200/20 dark:bg-purple-800/10 rounded-full blur-2xl"></div>
+        <div className="absolute top-1/3 left-1/3 w-64 h-64 bg-green-100/10 dark:bg-green-900/5 rounded-full blur-3xl"></div>
+      </div>
+      
+      <div className="px-4 relative z-10">
+        <div className="text-center mb-16 sm:mb-20">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 rounded-full text-blue-700 dark:text-blue-300 text-sm font-medium mb-6">
+            <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
             FAQ
-          </Badge>
+          </div>
           
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 text-slate-900 dark:text-white">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6 text-slate-900 dark:text-white px-4 sm:px-0">
             Frequently Asked Questions
           </h2>
-          <p className="text-lg md:text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto px-4">
+          <p className="text-base sm:text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto px-4 sm:px-0">
             Everything you need to know about Seentics and how it can transform your website analytics
           </p>
         </div>
         
-        <div className="max-w-5xl mx-auto">
-          <Accordion type="single" collapsible className="w-full space-y-4">
+        <div className="max-w-5xl mx-auto mb-20">
+          <Accordion type="single" collapsible className="w-full space-y-6">
             {faqs.map((faq, index) => (
               <AccordionItem
                 key={index}
                 value={`item-${index}`}
-                className="border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 shadow-sm"
+                className="border border-slate-200/50 dark:border-slate-700/50 rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group"
               >
-                <AccordionTrigger className="text-left text-base md:text-lg font-semibold text-slate-900 dark:text-white px-6 py-4">
+                <AccordionTrigger className="text-left text-base sm:text-lg font-semibold text-slate-900 dark:text-white px-6 sm:px-8 py-6 hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors duration-200 group-hover:text-blue-600 dark:group-hover:text-blue-400">
                   {faq.question}
                 </AccordionTrigger>
-                <AccordionContent className="text-sm md:text-base text-slate-600 dark:text-slate-300 leading-relaxed px-6 pb-6">
+                <AccordionContent className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed px-6 sm:px-8 pb-6">
                   {faq.answer}
                 </AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
+        </div>
+        
+        {/* Enhanced Bottom CTA */}
+        <div className="text-center">
+          <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-3xl p-8 sm:p-12 border border-slate-200/50 dark:border-slate-700/50 shadow-xl max-w-4xl mx-auto">
+            <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-4">
+              Still Have Questions?
+            </h3>
+            <p className="text-slate-600 dark:text-slate-400 mb-8 max-w-2xl mx-auto">
+              Can't find the answer you're looking for? Our team is here to help you get started.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Button variant="outline" className="px-6 py-3 font-semibold border-2 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800">
+                Contact Support
+              </Button>
+              <Button className="px-6 py-3 font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300">
+                Start Free Trial
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     </section>
