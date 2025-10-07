@@ -46,6 +46,13 @@ docker-compose.prod.yml
 docker-compose.production.yml
 docker-compose.staging.yml
 
+# Production deployment scripts
+run-production.sh
+run-dev.sh
+deploy-*.sh
+start-*.sh
+stop-*.sh
+
 # Logs
 logs/
 *.log
