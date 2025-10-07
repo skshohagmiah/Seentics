@@ -86,9 +86,36 @@ app.use(notFound);
 app.use(errorHandler);
 
 const PORT = config.PORT || 3001;
+let server;
 
-app.listen(PORT, () => {
+// Start server
+server = app.listen(PORT, () => {
   console.log(`User Service running on port ${PORT}`);
 });
+
+// Graceful shutdown
+async function gracefulShutdown(signal) {
+  console.log(`${signal} received, shutting down gracefully`);
+  
+  if (server) {
+    server.close(() => {
+      console.log('HTTP server closed');
+    });
+  }
+  
+  // Close database connections
+  try {
+    const mongoose = await import('mongoose');
+    await mongoose.default.connection.close();
+    console.log('MongoDB connection closed');
+  } catch (error) {
+    console.error('Error closing MongoDB connection:', error);
+  }
+  
+  process.exit(0);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 export default app;

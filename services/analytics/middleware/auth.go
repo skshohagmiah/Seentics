@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 
@@ -14,27 +13,22 @@ func APIKeyMiddleware(next http.Handler) http.Handler {
 		// Get global API key from environment
 		expectedAPIKey := os.Getenv("GLOBAL_API_KEY")
 		if expectedAPIKey == "" {
-			fmt.Printf("❌ GLOBAL_API_KEY not configured in analytics service\n")
-			http.Error(w, "API key not configured", http.StatusInternalServerError)
+			http.Error(w, "Service configuration error", http.StatusInternalServerError)
 			return
 		}
 
 		// Get API key from request header
 		providedAPIKey := r.Header.Get("X-API-Key")
 		if providedAPIKey == "" {
-			fmt.Printf("❌ Missing X-API-Key header in analytics service\n")
-			http.Error(w, "Missing API key", http.StatusUnauthorized)
+			http.Error(w, "Authentication required", http.StatusUnauthorized)
 			return
 		}
 
 		// Validate API key using simple string comparison
 		if providedAPIKey != expectedAPIKey {
-			fmt.Printf("❌ Invalid API key provided to analytics service\n")
-			http.Error(w, "Invalid API key", http.StatusUnauthorized)
+			http.Error(w, "Invalid authentication", http.StatusUnauthorized)
 			return
 		}
-
-		fmt.Printf("✅ Global API key validation passed for analytics service\n")
 		next.ServeHTTP(w, r)
 	})
 }
@@ -45,8 +39,7 @@ func GinAPIKeyMiddleware() gin.HandlerFunc {
 		// Get global API key from environment
 		expectedAPIKey := os.Getenv("GLOBAL_API_KEY")
 		if expectedAPIKey == "" {
-			fmt.Printf("❌ GLOBAL_API_KEY not configured in analytics service\n")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "API key not configured"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Service configuration error"})
 			c.Abort()
 			return
 		}
@@ -54,21 +47,17 @@ func GinAPIKeyMiddleware() gin.HandlerFunc {
 		// Get API key from request header
 		providedAPIKey := c.GetHeader("X-API-Key")
 		if providedAPIKey == "" {
-			fmt.Printf("❌ Missing X-API-Key header in analytics service\n")
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing API key"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
 			c.Abort()
 			return
 		}
 
 		// Validate API key using simple string comparison
 		if providedAPIKey != expectedAPIKey {
-			fmt.Printf("❌ Invalid API key provided to analytics service\n")
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid API key"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authentication"})
 			c.Abort()
 			return
 		}
-
-		fmt.Printf("✅ Global API key validation passed for analytics service\n")
 		c.Next()
 	}
 }

@@ -2,8 +2,8 @@ package cache
 
 import (
 	"crypto/sha256"
-	"fmt"
 	"encoding/hex"
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -21,18 +21,18 @@ func createSecureCacheKey(prefix string, parts ...string) string {
 // checkRateLimit checks if we should rate limit validation requests
 func checkRateLimit(websiteID string) error {
 	rateLimitKey := fmt.Sprintf("rate_limit:validation:%s", websiteID)
-	
+
 	// Check if rate limit key exists
 	if _, err := GetCachedData(rateLimitKey); err == nil {
 		return fmt.Errorf("rate limit exceeded for website %s", websiteID)
 	}
-	
+
 	// Set rate limit (5 requests per minute per website)
 	rateLimitData := map[string]interface{}{"count": 1}
 	if err := CacheData(rateLimitKey, rateLimitData, 12); err != nil { // 12 seconds = 5 requests per minute
 		// Failed to set rate limit, continue anyway
 	}
-	
+
 	return nil
 }
 
@@ -40,16 +40,16 @@ func checkRateLimit(websiteID string) error {
 func sanitizeInput(input string) string {
 	// Remove null bytes and control characters
 	input = strings.ReplaceAll(input, "\x00", "")
-	
+
 	// Limit length to prevent memory exhaustion
 	if len(input) > 255 {
 		input = input[:255]
 	}
-	
+
 	// Remove potentially dangerous characters
 	dangerousChars := regexp.MustCompile(`[<>'";&|$\x00-\x1f\x7f-\x9f]`)
 	input = dangerousChars.ReplaceAllString(input, "")
-	
+
 	return strings.TrimSpace(input)
 }
 
@@ -61,19 +61,25 @@ func validateInputs(websiteID, domain string) error {
 	if domain == "" {
 		return fmt.Errorf("domain cannot be empty")
 	}
-	
+
 	// Validate websiteID format (should be alphanumeric with hyphens/underscores)
 	websiteIDPattern := regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 	if !websiteIDPattern.MatchString(websiteID) {
 		return fmt.Errorf("invalid websiteID format")
 	}
-	
-	// Validate domain format
+
+	// Validate domain format - allow localhost and IP addresses for development
+	// Standard domain pattern: example.com, subdomain.example.com
 	domainPattern := regexp.MustCompile(`^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-	if !domainPattern.MatchString(domain) {
+	// Localhost pattern: localhost, localhost:port
+	localhostPattern := regexp.MustCompile(`^localhost(:[0-9]+)?$`)
+	// IP address pattern: 127.0.0.1, 192.168.1.1, etc.
+	ipPattern := regexp.MustCompile(`^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(:[0-9]+)?$`)
+
+	if !domainPattern.MatchString(domain) && !localhostPattern.MatchString(domain) && !ipPattern.MatchString(domain) {
 		return fmt.Errorf("invalid domain format")
 	}
-	
+
 	return nil
 }
 
@@ -82,11 +88,11 @@ func ValidateWebsite(websiteID, domain string) (map[string]interface{}, error) {
 	// 0. Sanitize and validate inputs
 	websiteID = sanitizeInput(websiteID)
 	domain = sanitizeInput(domain)
-	
+
 	if err := validateInputs(websiteID, domain); err != nil {
 		return nil, fmt.Errorf("input validation failed: %v", err)
 	}
-	
+
 	cacheKey := CreateValidationCacheKey(websiteID, domain)
 
 	// 1. Check Redis cache first
@@ -138,15 +144,15 @@ func ValidateWebsiteWithOrigin(websiteID, domain, origin string) (map[string]int
 	websiteID = sanitizeInput(websiteID)
 	domain = sanitizeInput(domain)
 	origin = sanitizeInput(origin)
-	
+
 	if err := validateInputs(websiteID, domain); err != nil {
 		return nil, fmt.Errorf("input validation failed: %v", err)
 	}
-	
+
 	if origin == "" {
 		return nil, fmt.Errorf("origin cannot be empty for origin validation")
 	}
-	
+
 	// Create secure hashed cache key that includes origin for security
 	cacheKey := createSecureCacheKey("validation_origin", websiteID, domain, origin)
 

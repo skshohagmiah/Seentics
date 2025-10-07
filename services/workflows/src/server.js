@@ -22,6 +22,7 @@ import healthRoutes from './routes/healthRoutes.js';
 import adminRoutes from './routes/admin.js';
 
 const app = express();
+let server;
 
 // Security middleware
 app.use(helmet());
@@ -88,22 +89,47 @@ async function startServer() {
   await initializeServices();
   
   const PORT = config.port || 3003;
-  app.listen(PORT, () => {
+  server = app.listen(PORT, () => {
     logger.info(`Workflows Service running on port ${PORT}`);
     logger.info(`Environment: ${config.env}`);
   });
 }
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received, shutting down gracefully');
+async function gracefulShutdown(signal) {
+  logger.info(`${signal} received, shutting down gracefully`);
+  
+  if (server) {
+    server.close(() => {
+      logger.info('HTTP server closed');
+    });
+  }
+  
+  // Close database connections
+  try {
+    const mongoose = await import('mongoose');
+    await mongoose.default.connection.close();
+    logger.info('MongoDB connection closed');
+  } catch (error) {
+    logger.error('Error closing MongoDB connection:', error);
+  }
+  
+  // Close Redis connections
+  try {
+    const { redisClient } = await import('./config/redis.js');
+    if (redisClient) {
+      redisClient.disconnect();
+      logger.info('Redis connection closed');
+    }
+  } catch (error) {
+    logger.error('Error closing Redis connection:', error);
+  }
+  
   process.exit(0);
-});
+}
 
-process.on('SIGINT', () => {
-  logger.info('SIGINT received, shutting down gracefully');
-  process.exit(0);
-});
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 startServer().catch(error => {
   logger.error('Failed to start server:', error);

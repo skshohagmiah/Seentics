@@ -78,6 +78,7 @@ func main() {
 	})
 
 	// Admin routes - internal use only (frontend will handle admin code authentication)
+	// TODO: Add proper admin authentication middleware
 	mux.HandleFunc("/api/v1/admin/stats", handlers.GetAdminStats)
 	mux.HandleFunc("/api/v1/admin/users", handlers.GetUsersList)
 	mux.HandleFunc("/api/v1/admin/websites", handlers.GetWebsitesList)
@@ -92,12 +93,29 @@ func main() {
 		port = "8080" // default port
 	}
 
+	// Add health check endpoint
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"healthy","service":"gateway"}`))
+	})
+	
 	log.Printf("Gateway is running on port %s", port)
 	log.Fatal(http.ListenAndServe(":"+port, handler))
 }
 
 func proxyTo(w http.ResponseWriter, r *http.Request, target string) {
-	targetURL, _ := url.Parse(target)
+	if target == "" {
+		http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	
+	targetURL, err := url.Parse(target)
+	if err != nil {
+		log.Printf("Invalid target URL %s: %v", target, err)
+		http.Error(w, "Service configuration error", http.StatusInternalServerError)
+		return
+	}
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
 
 	// Add timeout configuration

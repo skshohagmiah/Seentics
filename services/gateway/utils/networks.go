@@ -23,13 +23,8 @@ func GetClientIP(r *http.Request) string {
 func GetRateLimitID(r *http.Request, routeType string) string {
 	switch routeType {
 	case "public":
-		// Try to get from headers first (already processed)
-		if domain := r.Header.Get("X-Website-Domain"); domain != "" {
-			return "domain:" + domain
-		}
-		if siteId := r.Header.Get("X-Site-ID"); siteId != "" {
-			return "site:" + siteId
-		}
+		// Public routes should ALWAYS be IP-based for security
+		// This prevents abuse by rotating domains/siteIds
 		return "ip:" + GetClientIP(r)
 	case "protected":
 		if userID := r.Header.Get("X-User-ID"); userID != "" {

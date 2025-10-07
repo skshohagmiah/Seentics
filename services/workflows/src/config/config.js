@@ -2,6 +2,18 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Validate required environment variables in production
+function validateEnvironment() {
+  const required = ['MONGODB_URI', 'REDIS_URL', 'GLOBAL_API_KEY'];
+  const missing = required.filter(key => !process.env[key]);
+  
+  if (process.env.NODE_ENV === 'production' && missing.length > 0) {
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+}
+
+validateEnvironment();
+
 export const config = {
   env: process.env.NODE_ENV || 'development',
   port: process.env.PORT || 3003,
