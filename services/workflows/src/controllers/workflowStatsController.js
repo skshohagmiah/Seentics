@@ -154,10 +154,7 @@ export const resetWorkflowStats = async (req, res, next) => {
           'analytics.failedRuns': 0,
           'analytics.averageCompletionTime': 0,
           'analytics.nodeStats': new Map(),
-          'analytics.lastTriggered': null,
-          totalTriggers: 0,
-          totalCompletions: 0,
-          completionRate: '0.0%'
+          'analytics.lastTriggered': null
         }
       });
 
