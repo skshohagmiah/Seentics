@@ -54,7 +54,7 @@ export async function initializeQueues() {
     // Process analytics jobs (with concurrency)
     analyticsQueue.process('track-workflow-event', analyticsConcurrency, async (job) => {
       const { eventData } = job.data;
-      return await analyticsService.trackWorkflowEvent(eventData);
+      return await analyticsService.trackWorkflowEvents(eventData);
     });
 
     // Queue event handlers

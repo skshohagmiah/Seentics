@@ -87,7 +87,6 @@ func (h *FunnelHandler) GetActiveFunnels(c *gin.Context) {
 		return
 	}
 
-
 	funnels, err := h.service.GetFunnels(c.Request.Context(), websiteID)
 	if err != nil {
 		h.logger.Error().Err(err).Msg("Failed to get active funnels")
@@ -227,10 +226,11 @@ func (h *FunnelHandler) TrackFunnelEvent(c *gin.Context) {
 		return
 	}
 
-	err := h.service.TrackFunnelEvent(c.Request.Context(), &event)
+	// Use async processing for better performance
+	err := h.service.TrackFunnelEventAsync(event)
 	if err != nil {
-		h.logger.Error().Err(err).Msg("Failed to track funnel event")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to track funnel event"})
+		h.logger.Error().Err(err).Msg("Failed to queue funnel event")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to queue funnel event"})
 		return
 	}
 
@@ -239,6 +239,59 @@ func (h *FunnelHandler) TrackFunnelEvent(c *gin.Context) {
 		"funnel_id":  event.FunnelID,
 		"visitor_id": event.VisitorID,
 		"session_id": event.SessionID,
+		"message":    "Event queued for processing",
+	})
+}
+
+// TrackFunnelEventsBatch - NEW: Batch processing endpoint for funnel events
+func (h *FunnelHandler) TrackFunnelEventsBatch(c *gin.Context) {
+	var req struct {
+		Events []models.FunnelEvent `json:"events" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.logger.Error().Err(err).Msg("Failed to bind funnel events batch data")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid funnel events batch data",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if len(req.Events) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Events array cannot be empty"})
+		return
+	}
+
+	// Queue all events for async batch processing
+	queued := 0
+	failed := 0
+
+	for _, event := range req.Events {
+		err := h.service.TrackFunnelEventAsync(event)
+		if err != nil {
+			h.logger.Error().Err(err).
+				Str("funnel_id", event.FunnelID.String()).
+				Str("visitor_id", event.VisitorID).
+				Msg("Failed to queue funnel event in batch")
+			failed++
+		} else {
+			queued++
+		}
+	}
+
+	h.logger.Info().
+		Int("total_events", len(req.Events)).
+		Int("queued", queued).
+		Int("failed", failed).
+		Msg("Queued funnel events batch for processing")
+
+	c.JSON(http.StatusCreated, gin.H{
+		"status":  "success",
+		"queued":  queued,
+		"failed":  failed,
+		"total":   len(req.Events),
+		"message": "Funnel events batch queued for processing",
 	})
 }
 

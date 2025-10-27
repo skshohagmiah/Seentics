@@ -5,22 +5,53 @@ import (
 	"analytics-app/repository"
 	"context"
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
+const (
+	// Funnel batch processing constants
+	FunnelBatchSize     = 100 // Smaller batch size for funnel events
+	FunnelFlushInterval = 3 * time.Second
+)
+
 type FunnelService struct {
 	repo   *repository.FunnelRepository
 	logger zerolog.Logger
+
+	// Batch processing channels
+	eventChan chan models.FunnelEvent
+	batchChan chan []models.FunnelEvent
+
+	// Shutdown control
+	ctx        context.Context
+	cancel     context.CancelFunc
+	wg         sync.WaitGroup
+	isShutdown bool
+	shutdownMu sync.RWMutex
 }
 
 func NewFunnelService(repo *repository.FunnelRepository, logger zerolog.Logger, redisClient *redis.Client) *FunnelService {
-	return &FunnelService{
-		repo:   repo,
-		logger: logger,
+	ctx, cancel := context.WithCancel(context.Background())
+
+	service := &FunnelService{
+		repo:      repo,
+		logger:    logger,
+		eventChan: make(chan models.FunnelEvent, 1000), // Buffered channel
+		batchChan: make(chan []models.FunnelEvent, 200),
+		ctx:       ctx,
+		cancel:    cancel,
 	}
+
+	// Start batch processing goroutines
+	service.startBatchCollector()
+	service.startBatchProcessor()
+
+	return service
 }
 
 func (s *FunnelService) CreateFunnel(ctx context.Context, req *models.CreateFunnelRequest) (*models.Funnel, error) {
@@ -128,6 +159,56 @@ func (s *FunnelService) TrackFunnelEvent(ctx context.Context, event *models.Funn
 
 	// Funnel events are now handled client-side by workflow-tracker.js
 	// No need to emit events to workflow service
+
+	return nil
+}
+
+// TrackFunnelEventsBatch - NEW: Batch processing for funnel events
+func (s *FunnelService) TrackFunnelEventsBatch(ctx context.Context, events []models.FunnelEvent) error {
+	if len(events) == 0 {
+		return nil
+	}
+
+	s.logger.Info().
+		Int("batch_size", len(events)).
+		Msg("Processing funnel events batch")
+
+	// Process each event with validation
+	processed := 0
+	for _, event := range events {
+		// Validate funnel exists and belongs to website
+		funnel, err := s.repo.GetByID(ctx, event.FunnelID)
+		if err != nil {
+			s.logger.Error().Err(err).
+				Str("funnel_id", event.FunnelID.String()).
+				Msg("Invalid funnel in batch, skipping")
+			continue
+		}
+		if funnel.WebsiteID != event.WebsiteID {
+			s.logger.Error().
+				Str("funnel_id", event.FunnelID.String()).
+				Str("expected_website", funnel.WebsiteID).
+				Str("provided_website", event.WebsiteID).
+				Msg("Funnel website mismatch in batch, skipping")
+			continue
+		}
+
+		// Store the event
+		if err := s.repo.CreateFunnelEvent(ctx, &event); err != nil {
+			s.logger.Error().Err(err).
+				Str("funnel_id", event.FunnelID.String()).
+				Str("visitor_id", event.VisitorID).
+				Msg("Failed to store funnel event in batch")
+			continue
+		}
+		processed++
+	}
+
+	s.logger.Info().
+		Int("total_events", len(events)).
+		Int("processed", processed).
+		Int("failed", len(events)-processed).
+		Msg("Completed funnel events batch processing")
 
 	return nil
 }
@@ -242,4 +323,180 @@ func (s *FunnelService) calculatePerformanceScore(analytics *models.FunnelAnalyt
 	}
 
 	return conversionScore + dropOffScore + timeScore
+}
+
+// startBatchCollector collects funnel events and batches them
+func (s *FunnelService) startBatchCollector() {
+	s.wg.Add(1)
+	go func() {
+		defer s.wg.Done()
+
+		ticker := time.NewTicker(FunnelFlushInterval)
+		defer ticker.Stop()
+
+		batch := make([]models.FunnelEvent, 0, FunnelBatchSize)
+
+		for {
+			select {
+			case <-s.ctx.Done():
+				// Flush remaining batch before exit
+				if len(batch) > 0 {
+					s.sendBatch(batch)
+				}
+				close(s.batchChan)
+				return
+
+			case event := <-s.eventChan:
+				batch = append(batch, event)
+
+				// Send batch when it's full
+				if len(batch) >= FunnelBatchSize {
+					s.sendBatch(batch)
+					batch = make([]models.FunnelEvent, 0, FunnelBatchSize)
+					ticker.Reset(FunnelFlushInterval)
+				}
+
+			case <-ticker.C:
+				// Send batch on timer (even if not full)
+				if len(batch) > 0 {
+					s.sendBatch(batch)
+					batch = make([]models.FunnelEvent, 0, FunnelBatchSize)
+				}
+			}
+		}
+	}()
+}
+
+// sendBatch sends a batch to the processing channel
+func (s *FunnelService) sendBatch(batch []models.FunnelEvent) {
+	batchCopy := make([]models.FunnelEvent, len(batch))
+	copy(batchCopy, batch)
+
+	select {
+	case s.batchChan <- batchCopy:
+		s.logger.Debug().Int("batch_size", len(batch)).Msg("Sent funnel batch for processing")
+	case <-s.ctx.Done():
+		return
+	default:
+		s.logger.Warn().Int("batch_size", len(batch)).Msg("Batch channel full, dropping funnel batch")
+	}
+}
+
+// startBatchProcessor processes batches of funnel events
+func (s *FunnelService) startBatchProcessor() {
+	s.wg.Add(1)
+	go func() {
+		defer s.wg.Done()
+
+		for {
+			select {
+			case <-s.ctx.Done():
+				return
+
+			case batch, ok := <-s.batchChan:
+				if !ok {
+					return
+				}
+
+				s.processBatch(batch)
+			}
+		}
+	}()
+}
+
+// processBatch processes a batch of funnel events
+func (s *FunnelService) processBatch(events []models.FunnelEvent) {
+	if len(events) == 0 {
+		return
+	}
+
+	start := time.Now()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Process batch - validate and store events
+	validEvents := make([]models.FunnelEvent, 0, len(events))
+
+	for _, event := range events {
+		// Basic validation - funnel existence check would be too expensive for batches
+		if event.FunnelID != uuid.Nil && event.WebsiteID != "" && event.VisitorID != "" {
+			validEvents = append(validEvents, event)
+		} else {
+			s.logger.Warn().
+				Str("funnel_id", event.FunnelID.String()).
+				Str("website_id", event.WebsiteID).
+				Str("visitor_id", event.VisitorID).
+				Msg("Invalid funnel event in batch, skipping")
+		}
+	}
+
+	if len(validEvents) == 0 {
+		s.logger.Warn().Msg("No valid events in batch")
+		return
+	}
+
+	// Bulk insert valid events
+	err := s.repo.CreateFunnelEventsBatch(ctx, validEvents)
+	if err != nil {
+		s.logger.Error().Err(err).
+			Int("batch_size", len(validEvents)).
+			Msg("Failed to process funnel events batch")
+		return
+	}
+
+	duration := time.Since(start)
+	s.logger.Info().
+		Int("total_events", len(events)).
+		Int("valid_events", len(validEvents)).
+		Int("invalid_events", len(events)-len(validEvents)).
+		Dur("duration", duration).
+		Msg("Successfully processed funnel events batch")
+}
+
+// TrackFunnelEventAsync - Add event to batch queue (NEW: Async processing)
+func (s *FunnelService) TrackFunnelEventAsync(event models.FunnelEvent) error {
+	s.shutdownMu.RLock()
+	defer s.shutdownMu.RUnlock()
+
+	if s.isShutdown {
+		return fmt.Errorf("service is shutting down")
+	}
+
+	select {
+	case s.eventChan <- event:
+		return nil
+	case <-s.ctx.Done():
+		return fmt.Errorf("service is shutting down")
+	default:
+		s.logger.Warn().Msg("Funnel event channel full, dropping event")
+		return fmt.Errorf("event channel full")
+	}
+}
+
+// Shutdown gracefully shuts down the funnel service
+func (s *FunnelService) Shutdown() {
+	s.shutdownMu.Lock()
+	defer s.shutdownMu.Unlock()
+
+	if s.isShutdown {
+		return
+	}
+
+	s.logger.Info().Msg("Shutting down funnel service")
+	s.isShutdown = true
+	s.cancel()
+
+	// Wait for all goroutines to finish with timeout
+	done := make(chan struct{})
+	go func() {
+		s.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		s.logger.Info().Msg("Funnel service shutdown completed")
+	case <-time.After(10 * time.Second):
+		s.logger.Warn().Msg("Funnel service shutdown timed out")
+	}
 }

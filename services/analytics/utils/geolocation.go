@@ -17,12 +17,12 @@ import (
 
 // LocationInfo contains comprehensive geolocation information
 type LocationInfo struct {
-	Country     string `json:"country"`
-	CountryCode string `json:"country_code"`
-	City        string `json:"city"`
-	Continent   string `json:"continent"`
-	Region      string `json:"region"`
-	Timezone    string `json:"timezone,omitempty"`
+	Country     string  `json:"country"`
+	CountryCode string  `json:"country_code"`
+	City        string  `json:"city"`
+	Continent   string  `json:"continent"`
+	Region      string  `json:"region"`
+	Timezone    string  `json:"timezone,omitempty"`
 	Latitude    float64 `json:"latitude,omitempty"`
 	Longitude   float64 `json:"longitude,omitempty"`
 }
@@ -37,7 +37,7 @@ type cacheEntry struct {
 type GeolocationService struct {
 	redisClient *redis.Client
 	maxmindDB   *geoip2.Reader
-	
+
 	// Fallback in-memory cache
 	memCache   map[string]cacheEntry
 	cacheMutex sync.RWMutex
@@ -93,7 +93,7 @@ func NewGeolocationService() *GeolocationService {
 	if maxmindPath == "" {
 		maxmindPath = "/data/GeoLite2-City.mmdb" // Default path
 	}
-	
+
 	// Only try to open MaxMind if the file exists and license key is set
 	if maxmindLicense := os.Getenv("MAXMIND_LICENSE_KEY"); maxmindLicense != "" {
 		if db, err := geoip2.Open(maxmindPath); err == nil {
@@ -491,14 +491,14 @@ func (f *FreeGeoIPService) parseIPAPI(body []byte) (*LocationInfo, error) {
 // parseIPAPICo parses response from ipapi.co
 func (f *FreeGeoIPService) parseIPAPICo(body []byte) (*LocationInfo, error) {
 	var resp struct {
-		Country       string  `json:"country_name"`
-		CountryCode   string  `json:"country_code"`
-		City          string  `json:"city"`
-		Region        string  `json:"region"`
-		Continent     string  `json:"continent_code"`
-		Timezone      string  `json:"timezone"`
-		Latitude      float64 `json:"latitude"`
-		Longitude     float64 `json:"longitude"`
+		Country     string  `json:"country_name"`
+		CountryCode string  `json:"country_code"`
+		City        string  `json:"city"`
+		Region      string  `json:"region"`
+		Continent   string  `json:"continent_code"`
+		Timezone    string  `json:"timezone"`
+		Latitude    float64 `json:"latitude"`
+		Longitude   float64 `json:"longitude"`
 	}
 
 	if err := json.Unmarshal(body, &resp); err != nil {

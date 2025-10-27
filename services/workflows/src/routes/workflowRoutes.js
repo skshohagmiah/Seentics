@@ -1,6 +1,5 @@
 import express from 'express';
 import * as executionController from '../controllers/executionController.js';
-import * as workflowAnalyticsController from '../controllers/workflowAnalyticsController.js';
 import * as workflowController from '../controllers/workflowController.js';
 import * as workflowStatsController from '../controllers/workflowStatsController.js';
 import { checkSubscriptionLimit, incrementUsageCounter } from '../middleware/subscriptionMiddleware.js';
@@ -22,11 +21,6 @@ router.get('/site/:siteId/active', workflowController.getActiveBySite);
 // Execution endpoints (public with validation)
 router.post('/execution/action', executionController.executeAction);
 
-// Analytics endpoints (legacy)
-router.get('/:id/analytics', workflowAnalyticsController.getAnalytics);
-router.get('/:id/activity', workflowAnalyticsController.getActivity);
-router.get('/:id/chart', workflowAnalyticsController.getChart);
-router.get('/:id/nodes', workflowAnalyticsController.getNodePerformance);
 
 // New aggregated stats endpoints
 router.get('/:id/stats', workflowStatsController.getWorkflowStats);

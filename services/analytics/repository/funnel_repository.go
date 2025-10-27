@@ -4,6 +4,8 @@ import (
 	"analytics-app/models"
 	"context"
 	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -122,6 +124,59 @@ func (r *FunnelRepository) Update(ctx context.Context, funnelID uuid.UUID, funne
 func (r *FunnelRepository) Delete(ctx context.Context, funnelID uuid.UUID) error {
 	query := `DELETE FROM funnels WHERE id = $1`
 	_, err := r.db.Exec(ctx, query, funnelID)
+	return err
+}
+
+// CreateFunnelEventsBatch - Efficient batch insert for funnel events
+func (r *FunnelRepository) CreateFunnelEventsBatch(ctx context.Context, events []models.FunnelEvent) error {
+	if len(events) == 0 {
+		return nil
+	}
+
+	// Prepare batch insert
+	query := `
+		INSERT INTO funnel_events (
+			id, funnel_id, website_id, visitor_id, session_id, current_step, 
+			started_at, last_activity, converted, properties, created_at
+		) VALUES `
+	
+	values := make([]interface{}, 0, len(events)*11)
+	placeholders := make([]string, 0, len(events))
+	
+	for i, event := range events {
+		// Set defaults if not provided
+		if event.ID == uuid.Nil {
+			event.ID = uuid.New()
+		}
+		if event.CreatedAt.IsZero() {
+			event.CreatedAt = time.Now()
+		}
+		now := time.Now()
+		if event.StartedAt == nil {
+			event.StartedAt = &now
+		}
+		if event.LastActivity == nil {
+			event.LastActivity = &now
+		}
+
+		// Create placeholder
+		placeholder := fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d)",
+			i*11+1, i*11+2, i*11+3, i*11+4, i*11+5, i*11+6,
+			i*11+7, i*11+8, i*11+9, i*11+10, i*11+11)
+		placeholders = append(placeholders, placeholder)
+		
+		// Marshal properties to JSON
+		propertiesJSON, _ := json.Marshal(event.Properties)
+		
+		values = append(values,
+			event.ID, event.FunnelID, event.WebsiteID, event.VisitorID, event.SessionID, event.CurrentStep,
+			event.StartedAt, event.LastActivity, event.Converted, propertiesJSON, event.CreatedAt,
+		)
+	}
+	
+	query += strings.Join(placeholders, ", ")
+	
+	_, err := r.db.Exec(ctx, query, values...)
 	return err
 }
 

@@ -38,7 +38,7 @@ const workflowSchema = new mongoose.Schema({
   nodes: [nodeSchema],
   edges: [edgeSchema],
   
-  // Consolidated analytics counters (removed redundancy)
+  // Analytics counters
   analytics: {
     totalTriggers: { type: Number, default: 0 },
     totalCompletions: { type: Number, default: 0 },
@@ -48,7 +48,7 @@ const workflowSchema = new mongoose.Schema({
     averageCompletionTime: { type: Number, default: 0 }, // in milliseconds
     lastTriggered: { type: Date },
     
-    // Node-wise counters
+    // Node-wise counters (simplified structure)
     nodeStats: {
       type: Map,
       of: {
@@ -66,6 +66,27 @@ const workflowSchema = new mongoose.Schema({
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
+});
+
+// Virtual properties for computed fields (replaces legacy fields)
+workflowSchema.virtual('completionRate').get(function() {
+  const triggers = this.analytics.totalTriggers || 0;
+  const completions = this.analytics.totalCompletions || 0;
+  return triggers > 0 ? `${(completions / triggers * 100).toFixed(1)}%` : '0.0%';
+});
+
+workflowSchema.virtual('successRate').get(function() {
+  const totalRuns = this.analytics.totalRuns || 0;
+  const successfulRuns = this.analytics.successfulRuns || 0;
+  return totalRuns > 0 ? `${(successfulRuns / totalRuns * 100).toFixed(1)}%` : '0.0%';
+});
+
+workflowSchema.virtual('totalTriggers').get(function() {
+  return this.analytics.totalTriggers || 0;
+});
+
+workflowSchema.virtual('totalCompletions').get(function() {
+  return this.analytics.totalCompletions || 0;
 });
 
 // Indexes for performance

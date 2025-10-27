@@ -22,32 +22,40 @@ The heart of Seentics is its intuitive visual workflow builder that allows users
 - **Logic**: AND/OR conditions, branching, loops
 - **Delays**: Time-based delays and scheduling
 
-### Behavior Tracking Engine
-Lightweight JavaScript tracking that captures user behavior without impacting website performance.
+### Advanced Analytics Engine
+High-performance analytics system with real-time processing and comprehensive insights.
 
-**Tracking Capabilities:**
-- **Page Views**: Automatic page view tracking with metadata
-- **User Sessions**: Session management with unique visitor identification
-- **Scroll Tracking**: Monitor scroll depth and engagement
-- **Click Tracking**: Track clicks on specific elements
-- **Exit Intent**: Detect when users are about to leave
-- **Custom Events**: Track business-specific user actions
-- **Form Interactions**: Monitor form fills and submissions
+**Analytics Capabilities:**
+- **Real-time Event Processing**: Instant event ingestion with batch processing
+- **Geographic Analytics**: IP-to-location mapping with countries, cities, regions
+- **Device & Browser Analytics**: Comprehensive user agent parsing
+- **Traffic Source Analysis**: Referrer and campaign attribution
+- **Time-series Analytics**: Hourly, daily, and custom time range analysis
+- **Performance Metrics**: Page load times and user experience data
 
 **Performance Features:**
-- **Lightweight**: <5KB minified and gzipped
-- **Async Loading**: Non-blocking script loading
-- **Batch Processing**: Efficient data transmission
-- **Privacy Compliant**: GDPR and CCPA ready
-- **Customizable**: Configurable tracking parameters
+- **Batch Processing**: Configurable batch sizes for optimal throughput
+- **TimescaleDB Storage**: Optimized time-series database with partitioning
+- **Multi-level Caching**: Redis + in-memory caching for geolocation
+- **Data Enrichment**: Automatic geolocation and user agent parsing
+- **Scalable Architecture**: Handle millions of events per day
 
-### Real-time Actions
-Execute actions instantly based on user behavior, creating engaging and responsive user experiences.
+### Workflow Analytics & Insights
+Comprehensive workflow performance monitoring with automated insights and optimization recommendations.
 
-**Action Types:**
-- **Client-Side Actions:**
-  - **Modals**: Customizable popup windows
-  - **Notifications**: Toast messages and alerts
+**Analytics Features:**
+- **Real-time Performance Tracking**: Monitor workflow effectiveness instantly
+- **Node-level Analytics**: Detailed performance metrics for each workflow component
+- **Conversion Rate Analysis**: Track trigger-to-completion conversion rates
+- **Automated Insights**: Smart recommendations for workflow optimization
+- **Batch Event Processing**: Efficient event aggregation every 2 seconds
+- **Embedded Counters**: Analytics stored directly in workflow documents
+
+**Performance Monitoring:**
+- **Success/Failure Rates**: Track workflow execution success rates
+- **Node Performance**: Monitor individual node execution statistics
+- **Frequency Analysis**: Understand action skipping due to frequency limits
+- **Condition Evaluation**: Track condition pass/fail rates for optimization
   - **Content Changes**: Dynamic content updates
   - **Redirects**: Smart page navigation
   - **Animations**: CSS animations and transitions

@@ -70,7 +70,7 @@ Add the tracking code to your website's `<head>` section:
 - **Geographic**: Visitor location and country analysis
 - **Custom Events**: Track specific user interactions
 
-## 🔌 API Integration
+### 🔌 API Integration
 
 ### Authentication
 All API requests require JWT authentication:
@@ -84,38 +84,43 @@ const response = await fetch('http://your-instance/api/v1/analytics/dashboard/we
 });
 ```
 
-### Event Tracking API
-Track custom events programmatically:
+### Workflow Event Tracking API
+Track workflow events programmatically:
 
 ```javascript
-// Single event
-await fetch('http://your-instance/api/v1/analytics/event', {
+// Single workflow event
+await fetch('http://your-instance/api/v1/workflows/analytics/track', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    websiteId: 'your-website-id',
-    visitorId: 'unique-visitor-id',
-    eventType: 'custom_event',
-    eventName: 'button_click',
-    properties: {
-      button_name: 'signup',
-      page_url: window.location.href
-    }
+    t: 'wf',                    // Event type marker
+    wf: 'workflow-id',          // Workflow ID
+    n: 'node-id',               // Node ID
+    e: 'workflow_trigger',      // Event name
+    w: 'your-site-id',          // Site ID
+    v: 'visitor-id',            // Visitor ID
+    ts: Date.now()              // Timestamp
   })
 });
 
-// Batch events
-await fetch('http://your-instance/api/v1/analytics/event/batch', {
+// Batch workflow events (recommended for performance)
+await fetch('http://your-instance/api/v1/workflows/analytics/track/batch', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    siteId: 'your-website-id',
     events: [
-      { visitorId: 'visitor-1', eventType: 'pageview', eventName: 'page_view' },
-      { visitorId: 'visitor-2', eventType: 'click', eventName: 'button_click' }
+      { t: 'wf', wf: 'workflow-1', e: 'workflow_trigger', n: 'trigger-node', ts: Date.now() },
+      { t: 'wf', wf: 'workflow-1', e: 'action_completed', n: 'action-node', ts: Date.now() },
+      { t: 'wf', wf: 'workflow-2', e: 'condition_evaluated', n: 'condition-node', r: 'passed', ts: Date.now() }
     ]
   })
 });
+
+// Get workflow analytics
+const analytics = await fetch('http://your-instance/api/v1/workflows/analytics/workflow/workflow-id', {
+  headers: { 'Authorization': `Bearer ${token}` }
+});
+// Returns: { totalTriggers, totalCompletions, conversionRate, nodeStats, etc. }
 ```
 
 ## 📝 Tracking Scripts
@@ -187,23 +192,31 @@ Configure webhooks to integrate with external systems:
 Key configuration options for production deployment:
 
 ```bash
+# Workflow Service Configuration
+PORT=3003                          # Workflow service port
+MONGODB_URI=mongodb://localhost:27017/workflows  # MongoDB connection
+REDIS_URL=redis://localhost:6379   # Redis for queues and caching
+
+# Analytics Service Configuration (Go)
+PORT=8080                          # Analytics service port
+DB_HOST=localhost                  # TimescaleDB host
+DB_PORT=5432                       # TimescaleDB port
+DB_NAME=seentics_analytics         # Database name
+
 # Performance Tuning
 BATCH_SIZE=1000                    # Event batch processing size
 WORKER_COUNT=10                    # Number of background workers
 CACHE_TTL=300                      # Redis cache TTL in seconds
-
-# Analytics Optimization
-RETENTION_DAYS=90                  # Data retention period
-AGGREGATION_INTERVAL=24h           # Statistics aggregation frequency
-MAX_DB_CONNECTIONS=100             # Database connection pool size
+QUEUE_CONCURRENCY=5                # Queue processing concurrency
 
 # Security
 JWT_SECRET=your-secure-secret      # JWT signing secret
 RATE_LIMIT_PER_MINUTE=1000        # API rate limiting
 CORS_ORIGIN=https://yourdomain.com # CORS allowed origins
-```
 
 ### Database Optimization
+
+#### TimescaleDB (Analytics Service)
 For high-traffic sites, consider these TimescaleDB optimizations:
 
 ```sql
@@ -216,6 +229,20 @@ SELECT add_compression_policy('events', INTERVAL '7 days');
 
 -- Set up data retention policy
 SELECT add_retention_policy('events', INTERVAL '1 year');
+```
+
+#### MongoDB (Workflow Service)
+Optimize MongoDB for workflow analytics:
+
+```javascript
+// Create indexes for workflow queries
+db.workflows.createIndex({ "userId": 1, "status": 1 });
+db.workflows.createIndex({ "siteId": 1, "status": 1 });
+db.workflows.createIndex({ "createdAt": -1 });
+
+// Optimize analytics queries
+db.workflows.createIndex({ "analytics.totalTriggers": -1 });
+db.workflows.createIndex({ "analytics.lastTriggered": -1 });
 ```
 
 ## 🔍 Troubleshooting

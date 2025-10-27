@@ -6,22 +6,37 @@ import { config } from '../../config/config.js';
 
 // Handle Lemon Squeezy webhooks
 export const handleLemonSqueezyWebhook = async (req, res) => {
+  const startTime = Date.now();
+  const requestId = `webhook_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
   try {
     const signature = req.headers['x-signature'];
     const payload = JSON.stringify(req.body);
     
+    console.log(`🍋 [${requestId}] Webhook received at ${new Date().toISOString()}`);
+    console.log(`🍋 [${requestId}] Headers:`, {
+      'x-signature': signature ? 'present' : 'missing',
+      'content-type': req.headers['content-type'],
+      'user-agent': req.headers['user-agent']
+    });
+    
     // Verify webhook signature
     if (!verifyWebhookSignature(payload, signature, process.env.LEMONSQUEEZY_WEBHOOK_SECRET)) {
+      console.error(`🍋 [${requestId}] ❌ Invalid webhook signature`);
       return res.status(401).json({
         success: false,
-        message: 'Invalid webhook signature'
+        message: 'Invalid webhook signature',
+        requestId
       });
     }
 
     const { meta, data } = req.body;
     const eventName = meta.event_name;
 
-    console.log(`Received Lemon Squeezy webhook: ${eventName}`);
+    console.log(`🍋 [${requestId}] ✅ Webhook signature verified`);
+    console.log(`🍋 [${requestId}] Event: ${eventName}`);
+    console.log(`🍋 [${requestId}] Data ID: ${data?.id}`);
+    console.log(`🍋 [${requestId}] Custom Data:`, meta.custom_data || data?.attributes?.custom_data);
 
     switch (eventName) {
       case 'subscription_created':
@@ -65,40 +80,63 @@ export const handleLemonSqueezyWebhook = async (req, res) => {
         break;
       
       default:
-        console.log(`Unhandled webhook event: ${eventName}`);
+        console.log(`🍋 [${requestId}] ⚠️ Unhandled webhook event: ${eventName}`);
     }
 
-    res.status(200).json({ success: true });
+    const processingTime = Date.now() - startTime;
+    console.log(`🍋 [${requestId}] ✅ Webhook processed successfully in ${processingTime}ms`);
+    
+    res.status(200).json({ 
+      success: true, 
+      requestId,
+      processingTime: `${processingTime}ms`
+    });
   } catch (error) {
-    console.error('Webhook processing error:', error);
+    const processingTime = Date.now() - startTime;
+    console.error(`🍋 [${requestId}] ❌ Webhook processing error (${processingTime}ms):`, error);
+    console.error(`🍋 [${requestId}] Stack trace:`, error.stack);
+    
     res.status(500).json({
       success: false,
       message: 'Webhook processing failed',
-      error: error.message
+      error: error.message,
+      requestId,
+      processingTime: `${processingTime}ms`
     });
   }
 };
 
 // Handle subscription created
 const handleSubscriptionCreated = async (data) => {
+  const subscriptionId = data.id;
+  console.log(`🍋 [SUBSCRIPTION_CREATED] Processing subscription: ${subscriptionId}`);
+  
   try {
     const customUserId = data.attributes.custom_data?.user_id;
+    console.log(`🍋 [SUBSCRIPTION_CREATED] Custom user ID: ${customUserId}`);
+    console.log(`🍋 [SUBSCRIPTION_CREATED] Variant ID: ${data.attributes.variant_id}`);
+    console.log(`🍋 [SUBSCRIPTION_CREATED] Customer ID: ${data.attributes.customer_id}`);
+    
     if (!customUserId) {
-      console.error('No user_id in subscription created webhook');
+      console.error(`🍋 [SUBSCRIPTION_CREATED] ❌ No user_id in subscription created webhook for subscription ${subscriptionId}`);
       return;
     }
 
+    console.log(`🍋 [SUBSCRIPTION_CREATED] Looking up user: ${customUserId}`);
     const user = await User.findById(customUserId).populate('subscriptionId');
     if (!user) {
-      console.error(`User not found: ${customUserId}`);
+      console.error(`🍋 [SUBSCRIPTION_CREATED] ❌ User not found: ${customUserId}`);
       return;
     }
 
+    console.log(`🍋 [SUBSCRIPTION_CREATED] ✅ User found: ${user.email}`);
     const subscription = user.subscriptionId;
     if (!subscription) {
-      console.error(`Subscription not found for user: ${customUserId}`);
+      console.error(`🍋 [SUBSCRIPTION_CREATED] ❌ Subscription not found for user: ${customUserId}`);
       return;
     }
+
+    console.log(`🍋 [SUBSCRIPTION_CREATED] ✅ Subscription found: ${subscription._id}`);
 
     // Map variant ID to plan
     const variantToPlan = {
@@ -108,9 +146,17 @@ const handleSubscriptionCreated = async (data) => {
 
     const plan = variantToPlan[data.attributes.variant_id];
     if (!plan) {
-      console.error(`Unknown variant ID: ${data.attributes.variant_id}`);
+      console.error(`🍋 [SUBSCRIPTION_CREATED] ❌ Unknown variant ID: ${data.attributes.variant_id}`);
+      console.error(`🍋 [SUBSCRIPTION_CREATED] Available variants:`, Object.keys(variantToPlan));
       return;
     }
+
+    console.log(`🍋 [SUBSCRIPTION_CREATED] ✅ Plan mapped: ${plan}`);
+    console.log(`🍋 [SUBSCRIPTION_CREATED] Updating subscription in database...`);
+
+    // Store old values for comparison
+    const oldPlan = subscription.plan;
+    const oldStatus = subscription.status;
 
     // Update subscription
     subscription.plan = plan;
@@ -125,12 +171,19 @@ const handleSubscriptionCreated = async (data) => {
 
     await subscription.save();
     
+    console.log(`🍋 [SUBSCRIPTION_CREATED] ✅ Database updated:`);
+    console.log(`🍋 [SUBSCRIPTION_CREATED]   Plan: ${oldPlan} → ${plan}`);
+    console.log(`🍋 [SUBSCRIPTION_CREATED]   Status: ${oldStatus} → active`);
+    console.log(`🍋 [SUBSCRIPTION_CREATED]   Period: ${data.attributes.created_at} → ${data.attributes.renews_at}`);
+    
     // Invalidate gateway cache for this user
+    console.log(`🍋 [SUBSCRIPTION_CREATED] Invalidating gateway cache...`);
     await invalidateGatewayCache(customUserId);
     
-    console.log(`Subscription created for user ${customUserId}: ${plan}`);
+    console.log(`🍋 [SUBSCRIPTION_CREATED] ✅ Subscription successfully created for user ${user.email} (${customUserId}): ${plan}`);
   } catch (error) {
-    console.error('Error handling subscription created:', error);
+    console.error(`🍋 [SUBSCRIPTION_CREATED] ❌ Error handling subscription created:`, error);
+    console.error(`🍋 [SUBSCRIPTION_CREATED] Stack trace:`, error.stack);
   }
 };
 

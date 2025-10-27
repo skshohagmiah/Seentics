@@ -67,7 +67,7 @@ func main() {
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to parse Redis URL")
 	}
-	
+
 	redisClient := redis.NewClient(opt)
 
 	// Test Redis connection
@@ -223,7 +223,7 @@ func setupRouter(
 
 	// Initialize subscription middleware
 	subscriptionMiddleware := middleware.NewSubscriptionMiddleware(logger)
-	
+
 	// Usage cache stats endpoint for monitoring
 	router.GET("/usage-stats", func(c *gin.Context) {
 		stats := subscriptionMiddleware.GetUsageCacheStats()

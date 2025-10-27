@@ -16,8 +16,8 @@ import (
 
 const (
 	// Optimized batch collection for better throughput
-	BatchSize     = 200               // Increased from 50 for better throughput
-	FlushInterval = 5 * time.Second   // Increased from 2s to balance latency vs efficiency
+	BatchSize     = 1000
+	FlushInterval = 5 * time.Second // Increased from 2s to balance latency vs efficiency
 )
 
 type EventService struct {
@@ -45,7 +45,7 @@ func NewEventService(repo *repository.EventRepository, db *pgxpool.Pool, logger 
 		db:        db,
 		logger:    logger,
 		eventChan: make(chan models.Event, 1000), // Buffered channel
-		batchChan: make(chan []models.Event, 100),
+		batchChan: make(chan []models.Event, 500),
 		ctx:       ctx,
 		cancel:    cancel,
 	}
@@ -62,11 +62,11 @@ func (s *EventService) ensurePartitionExists(ctx context.Context, targetDate tim
 	// Calculate partition boundaries (monthly partitions)
 	startOfMonth := time.Date(targetDate.Year(), targetDate.Month(), 1, 0, 0, 0, 0, time.UTC)
 	endOfMonth := startOfMonth.AddDate(0, 1, 0)
-	
+
 	partitionName := fmt.Sprintf("events_y%dm%02d", startOfMonth.Year(), startOfMonth.Month())
 	startDate := startOfMonth.Format("2006-01-02")
 	endDate := endOfMonth.Format("2006-01-02")
-	
+
 	// Check if partition already exists
 	var exists bool
 	checkQuery := `
@@ -79,7 +79,7 @@ func (s *EventService) ensurePartitionExists(ctx context.Context, targetDate tim
 	if err != nil {
 		return fmt.Errorf("failed to check if partition exists: %w", err)
 	}
-	
+
 	if !exists {
 		// Create the partition
 		createQuery := fmt.Sprintf(
@@ -96,7 +96,7 @@ func (s *EventService) ensurePartitionExists(ctx context.Context, targetDate tim
 			Str("end_date", endDate).
 			Msg("Created new partition")
 	}
-	
+
 	return nil
 }
 
@@ -453,7 +453,7 @@ func (s *EventService) enrichEventData(ctx context.Context, event *models.Event)
 		(event.IPAddress != nil && *event.IPAddress != "") {
 
 		location := utils.GetLocationFromIP(*event.IPAddress)
-		
+
 		// Set country information - use full country name for the country field
 		if event.Country == nil || *event.Country == "" {
 			// Use full country name for the country field
@@ -464,17 +464,17 @@ func (s *EventService) enrichEventData(ctx context.Context, event *models.Event)
 		if event.CountryCode == nil || *event.CountryCode == "" {
 			event.CountryCode = &location.CountryCode
 		}
-		
+
 		// Set city information
 		if event.City == nil || *event.City == "" {
 			event.City = &location.City
 		}
-		
+
 		// Set continent information
 		if event.Continent == nil || *event.Continent == "" {
 			event.Continent = &location.Continent
 		}
-		
+
 		// Set region information
 		if event.Region == nil || *event.Region == "" {
 			event.Region = &location.Region

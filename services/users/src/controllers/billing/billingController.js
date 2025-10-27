@@ -128,16 +128,21 @@ export const createCheckoutSession = async (req, res) => {
 
     const response = await lemonSqueezyApiInstance.post('/checkouts', checkoutData);
     
+    console.log(`✅ Checkout session created for user ${user.email}: ${plan}`);
+    console.log(`🔗 Checkout URL: ${response.data.data.attributes.url}`);
+    
     res.json({
+      success: true,
       data: {
         checkoutUrl: response.data.data.attributes.url
       }
     });
   } catch (error) {
-    console.error('Error updating usage:', error);
+    console.error('Error creating checkout session:', error);
+    console.error('LemonSqueezy API Error:', error.response?.data);
     res.status(500).json({
       success: false,
-      message: 'Failed to update usage',
+      message: 'Failed to create checkout session',
       error: error.message
     });
   }

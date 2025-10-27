@@ -17,30 +17,32 @@
 
 ## 🎯 Overview
 
-The Analytics Service is a high-performance, Go-based microservice designed to handle website analytics and event tracking. It provides real-time data collection, processing, and analysis capabilities with optimized time-series storage using TimescaleDB.
+The Analytics Service is a high-performance, Go-based microservice designed to handle website analytics and event tracking. It provides real-time data collection, processing, and analysis capabilities with optimized time-series storage using TimescaleDB and PostgreSQL.
 
 **Key Capabilities:**
-- Real-time event tracking and ingestion
-- Advanced analytics and reporting
-- Funnel analysis and conversion tracking
-- Performance-optimized time-series queries
-- Automated data aggregation and retention
+- Real-time event tracking and ingestion with batch processing
+- Advanced geolocation analytics with IP-to-location mapping
+- Performance-optimized time-series queries with partitioning
+- Automated data enrichment (user agent parsing, geolocation)
 - Scalable architecture for high-traffic websites
+- Efficient batch processing with configurable batch sizes
+- Geographic analytics (countries, cities, continents, regions)
 
 ## 🏗️ Architecture
 
 ### High-Level Architecture
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   API Gateway  │───▶│ Analytics       │───▶│   TimescaleDB   │
-│   (Port 8080)  │    │ Service         │    │   (PostgreSQL)  │
+│   Frontend      │───▶│ Analytics       │───▶│   TimescaleDB   │
+│   Trackers      │    │ Service (Go)    │    │   (PostgreSQL)  │
+│   (JavaScript)  │    │   Port 8080     │    │   + Partitions  │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
-                              │
-                              ▼
-                       ┌─────────────────┐
-                       │   Redis Cache   │
-                       │   (Optional)    │
-                       └─────────────────┘
+                              │                        │
+                              ▼                        ▼
+                       ┌─────────────────┐    ┌─────────────────┐
+                       │   Redis Cache   │    │   MaxMind DB    │
+                       │   + Geolocation │    │   (Geolocation) │
+                       └─────────────────┘    └─────────────────┘
 ```
 
 ### Service Architecture Pattern
@@ -48,16 +50,22 @@ The service follows a **Clean Architecture** pattern with clear separation of co
 
 ```
 HTTP Layer (Handlers) → Business Logic (Services) → Data Access (Repository) → Database
+                     ↓                        ↓                         ↓
+                 - REST APIs              - Event Processing      - TimescaleDB
+                 - Batch Processing       - Geolocation Service   - Redis Cache
+                 - CORS & Auth           - Data Enrichment       - Partitioning
+```
 ```
 
 ## ✨ Features
 
 ### 🎯 Core Analytics
-- **Dashboard Metrics**: Page views, unique visitors, sessions, bounce rate
-- **Real-time Analytics**: Live visitor tracking and activity monitoring
-- **Time-series Analysis**: Hourly, daily, and custom time range analytics
-- **Geographic Data**: Country and region-based visitor analytics
-- **Device Analytics**: Browser, OS, and device type tracking
+- **Event Tracking**: Page views, custom events, user interactions
+- **Batch Processing**: Efficient event ingestion with configurable batch sizes
+- **Geographic Analytics**: IP-to-location mapping with countries, cities, regions, continents
+- **Data Enrichment**: Automatic user agent parsing and geolocation
+- **Time-series Storage**: Optimized TimescaleDB with automatic partitioning
+- **Caching Layer**: Redis-based caching for geolocation and frequent queries
 - **Referrer Analysis**: Traffic source and campaign attribution
 
 ### 🔄 Funnel Analytics
@@ -68,19 +76,20 @@ HTTP Layer (Handlers) → Business Logic (Services) → Data Access (Repository)
 
 ### 📊 Advanced Analytics
 - **UTM Campaign Tracking**: Marketing campaign performance analysis
-- **Custom Events**: Track and analyze custom user interactions
 - **Session Analysis**: Session duration, pages per session metrics
 - **Bounce Rate Analysis**: Page and referrer bounce rate insights
 - **Performance Metrics**: Page load times and user experience data
 
 ### 🚀 Performance Features
-- **Continuous Aggregates**: Automated data summarization for fast queries
-- **Materialized Views**: Pre-computed analytics for dashboard performance
-- **Connection Pooling**: Optimized database connection management
-- **Batch Processing**: Efficient event processing and storage
-- **Caching Layer**: Redis-based caching for frequently accessed data
+- **Batch Processing**: Configurable batch sizes (default 1000 events)
+- **Connection Pooling**: Efficient PostgreSQL connection management
+- **Multi-level Caching**: Redis + in-memory caching for geolocation
+- **Automatic Partitioning**: Time-based table partitioning by timestamp
+- **Optimized Indexing**: Strategic indexes for website_id, timestamp, and geolocation
+- **Data Enrichment**: Efficient IP-to-location with MaxMind DB integration
+- **Graceful Shutdown**: Proper cleanup of batch processors and connections
 
-## 📁 Project Structure
+### Project Structure
 
 ```
 services/analytics/
@@ -287,6 +296,76 @@ type FunnelStep struct {
 ```
 
 ## 🌐 API Endpoints
+
+### **Event Tracking**
+```
+POST   /api/v1/analytics/event           # Track single event
+POST   /api/v1/analytics/event/batch     # Track multiple events (recommended)
+```
+
+### **Dashboard Analytics**
+```
+GET    /api/v1/analytics/dashboard/:websiteId          # Get dashboard metrics
+GET    /api/v1/analytics/dashboard/:websiteId/pages    # Get top pages
+GET    /api/v1/analytics/dashboard/:websiteId/sources  # Get traffic sources
+GET    /api/v1/analytics/dashboard/:websiteId/devices  # Get device analytics
+```
+
+### **Geographic Analytics**
+```
+GET    /api/v1/analytics/geo/:websiteId/countries      # Get top countries
+GET    /api/v1/analytics/geo/:websiteId/cities         # Get top cities
+GET    /api/v1/analytics/geo/:websiteId/continents     # Get top continents
+GET    /api/v1/analytics/geo/:websiteId/regions        # Get top regions
+```
+
+### **Time-series Analytics**
+```
+GET    /api/v1/analytics/timeseries/:websiteId         # Get time-series data
+GET    /api/v1/analytics/timeseries/:websiteId/hourly  # Get hourly breakdown
+GET    /api/v1/analytics/timeseries/:websiteId/daily   # Get daily breakdown
+```
+
+### **Health & Status**
+```
+GET    /health                                         # Health check
+GET    /api/v1/analytics/health                        # Detailed health info
+```
+
+### **Example API Requests**
+
+#### Track Events (Batch)
+```bash
+curl -X POST http://localhost:8080/api/v1/analytics/event/batch \
+  -H "Content-Type: application/json" \
+  -d '{
+    "events": [
+      {
+        "website_id": "site-123",
+        "visitor_id": "visitor-456",
+        "session_id": "session-789",
+        "event_type": "pageview",
+        "page": "/home",
+        "referrer": "https://google.com",
+        "user_agent": "Mozilla/5.0...",
+        "ip_address": "192.168.1.1",
+        "timestamp": "2024-01-15T10:30:00Z"
+      }
+    ]
+  }'
+```
+
+#### Get Dashboard Data
+```bash
+curl "http://localhost:8080/api/v1/analytics/dashboard/site-123?days=30" \
+  -H "Authorization: Bearer your-jwt-token"
+```
+
+#### Get Geographic Analytics
+```bash
+curl "http://localhost:8080/api/v1/analytics/geo/site-123/countries?days=7&limit=10" \
+  -H "Authorization: Bearer your-jwt-token"
+```
 
 ### Analytics Endpoints
 ```

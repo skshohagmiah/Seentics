@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/stores/useAuthStore';
+import api from '@/lib/api';
+import { toast } from 'sonner';
 
 const planFeatures = {
   free: [
@@ -69,6 +71,7 @@ const planPricing = {
 
 export default function BillingPage() {
   const [activeTab, setActiveTab] = useState('overview');
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const { user } = useAuth();
   const { 
     subscription, 
@@ -79,6 +82,33 @@ export default function BillingPage() {
     isNearLimit, 
     hasReachedLimit 
   } = useSubscription();
+
+  // Handle checkout creation
+  const handleUpgrade = async (plan: 'standard' | 'pro') => {
+    if (!user) {
+      toast.error('Please log in to upgrade your plan');
+      return;
+    }
+
+    setCheckoutLoading(plan);
+    
+    try {
+      const response = await api.post('/user/billing/checkout', { plan });
+      
+      if (response.data.success) {
+        // Redirect to LemonSqueezy checkout
+        window.open(response.data.data.checkoutUrl, '_blank');
+        toast.success('Redirecting to checkout...');
+      } else {
+        throw new Error(response.data.message || 'Failed to create checkout session');
+      }
+    } catch (error: any) {
+      console.error('Checkout error:', error);
+      toast.error(error.response?.data?.message || error.message || 'Failed to create checkout session');
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -174,16 +204,19 @@ export default function BillingPage() {
                     </p>
                   </div>
                   {currentPlan !== 'pro' && (
-                    <a 
-                      href={`https://seentics.lemonsqueezy.com/buy/39b59b36-94d3-40a5-821c-e31b6836345c?checkout[custom_data][user_id]=${user?.id || ''}&checkout[email]=${encodeURIComponent(user?.email || '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <Button 
+                      size="lg" 
+                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-base"
+                      onClick={() => handleUpgrade(currentPlan === 'free' ? 'standard' : 'pro')}
+                      disabled={checkoutLoading !== null}
                     >
-                      <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-base">
+                      {checkoutLoading ? (
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      ) : (
                         <ArrowUpRight className="h-5 w-5 mr-2" />
-                        Upgrade
-                      </Button>
-                    </a>
+                      )}
+                      {checkoutLoading ? 'Creating checkout...' : 'Upgrade'}
+                    </Button>
                   )}
                 </div>
               </CardContent>
@@ -438,17 +471,20 @@ export default function BillingPage() {
                         Downgrade (Contact Support)
                       </Button>
                     ) : (
-                      <a 
-                        href={`https://seentics.lemonsqueezy.com/buy/39b59b36-94d3-40a5-821c-e31b6836345c?checkout[custom_data][user_id]=${user?.id || ''}&checkout[email]=${encodeURIComponent(user?.email || '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <Button 
+                        className={`w-full ${plan === 'pro' ? 'bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700' : ''}`}
+                        onClick={() => handleUpgrade(plan as 'standard' | 'pro')}
+                        disabled={checkoutLoading !== null}
                       >
-                        <Button 
-                          className={`w-full ${plan === 'pro' ? 'bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700' : ''}`}
-                        >
-                          Upgrade to {plan.charAt(0).toUpperCase() + plan.slice(1)}
-                        </Button>
-                      </a>
+                        {checkoutLoading === plan ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Creating checkout...
+                          </>
+                        ) : (
+                          `Upgrade to ${plan.charAt(0).toUpperCase() + plan.slice(1)}`
+                        )}
+                      </Button>
                     )}
                   </CardContent>
                 </Card>
